@@ -10,7 +10,6 @@ using Smart_Freight.Server.Data;
 using Smart_Freight.Server.Models;
 using Smart_Freight.Server.Options;
 using Smart_Freight.Server.Services;
-using System.Text;
 
 namespace Smart_Freight.Server;
 
@@ -106,99 +105,6 @@ builder.Services.AddScoped<ITripPlanningService, TripPlanningService>();
         app.UseDefaultFiles();
         app.UseStaticFiles();
 
-
-        builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
-
-        builder.Services.AddDbContext<SmartFreightDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-        builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-            {
-                options.Password.RequireNonAlphanumeric = true;
-                options.Password.RequiredLength = 8;
-            })
-            .AddEntityFrameworkStores<SmartFreightDbContext>()
-            .AddDefaultTokenProviders();
-
-        var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey));
-
-        builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtOptions.Issuer,
-                    ValidAudience = jwtOptions.Audience,
-                    IssuerSigningKey = key
-                };
-            });
-
-        builder.Services.AddAuthorization();
-
-        builder.Services.AddScoped<ITokenService, TokenService>();
-
-        builder.Services.AddControllers();
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(options =>
-        {
-            options.SwaggerDoc("v1", new OpenApiInfo { Title = "Smart Freight API", Version = "v1" });
-            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-            {
-                Name = "Authorization",
-                Type = SecuritySchemeType.Http,
-                Scheme = "bearer",
-                BearerFormat = "JWT",
-                In = ParameterLocation.Header,
-                Description = "Enter 'Bearer {token}'"
-            });
-            options.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                    },
-                    Array.Empty<string>()
-                }
-            });
-        });
-        var corsPolicyName = "ClientCors";
-
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy(corsPolicyName, policy =>
-            {
-                policy
-                    .WithOrigins("https://localhost:63494", "http://localhost:63494") // ÍØ ÈæÑÊ ÇáÑíÃßÊ ÚäÏß
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials(); // ÝÞØ ÅÐÇ ÊÓÊÎÏã Cookies. ÅÐÇ JWT ÝÞØ ããßä ÊÔíáåÇ
-            });
-        });
-
-
-        var app = builder.Build();
-
-        app.UseSerilogRequestLogging();
-
-        app.UseExceptionHandler();
-
-        app.UseDefaultFiles();
-        app.UseStaticFiles();
-
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
@@ -210,10 +116,6 @@ builder.Services.AddScoped<ITripPlanningService, TripPlanningService>();
         app.UseAuthentication();
         app.UseAuthorization();
 
-        app.UseCors(corsPolicyName);
-
-        app.UseAuthentication();
-        app.UseAuthorization();
         app.MapControllers();
 
         await SeedData.InitializeAsync(app.Services);
