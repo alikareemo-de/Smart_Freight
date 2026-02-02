@@ -1,5 +1,4 @@
 
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +9,7 @@ using Smart_Freight.Server.Data;
 using Smart_Freight.Server.Models;
 using Smart_Freight.Server.Options;
 using Smart_Freight.Server.Services;
+using System.Text;
 
 namespace Smart_Freight.Server;
 
@@ -92,6 +92,20 @@ public class Program
                 }
             });
         });
+        var corsPolicyName = "ClientCors";
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(corsPolicyName, policy =>
+            {
+                policy
+                    .WithOrigins("https://localhost:63494", "http://localhost:63494") // Õÿ »Ê—  «·—Ì√ﬂ  ⁄‰œﬂ
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials(); // ›ﬁÿ ≈–«  ” Œœ„ Cookies. ≈–« JWT ›ﬁÿ „„ﬂ‰  ‘Ì·Â«
+            });
+        });
+
 
         var app = builder.Build();
 
@@ -109,10 +123,10 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseCors(corsPolicyName);
 
         app.UseAuthentication();
         app.UseAuthorization();
-
         app.MapControllers();
 
         await SeedData.InitializeAsync(app.Services);
