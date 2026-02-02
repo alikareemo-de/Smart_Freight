@@ -38,12 +38,7 @@ const AppLayout = () => {
     const navItems = useMemo(
         () => [
             { label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-            { label: 'Trips', icon: <RouteIcon />, path: '/trips' },
             { label: 'Drivers', icon: <LocalShippingIcon />, path: '/drivers' },
-            { label: 'Trucks', icon: <LocalShippingIcon />, path: '/trucks' },
-            { label: 'Products', icon: <InventoryIcon />, path: '/products' },
-            { label: 'Locations', icon: <LocationOnIcon />, path: '/locations' },
-            { label: 'Graph', icon: <AccountTreeIcon />, path: '/graph' },
         ],
         []
     );
