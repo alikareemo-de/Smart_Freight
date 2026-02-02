@@ -1,4 +1,5 @@
 
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,88 @@ public class Program
             configuration.ReadFrom.Configuration(context.Configuration));
 
         builder.Services.AddProblemDetails();
+
+        builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+
+        builder.Services.AddDbContext<SmartFreightDbContext>(options =>
+            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+        builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequiredLength = 8;
+            })
+            .AddEntityFrameworkStores<SmartFreightDbContext>()
+            .AddDefaultTokenProviders();
+
+        var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey));
+
+        builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidAudience = jwtOptions.Audience,
+                    IssuerSigningKey = key
+                };
+            });
+
+        builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddSingleton<GraphPathfinder>();
+builder.Services.AddScoped<IRoutingService, RoutingService>();
+builder.Services.AddScoped<ITripPlanningService, TripPlanningService>();
+
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo { Title = "Smart Freight API", Version = "v1" });
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Enter 'Bearer {token}'"
+            });
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
+
+        var app = builder.Build();
+
+        app.UseSerilogRequestLogging();
+
+        app.UseExceptionHandler();
+
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
 
         builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
@@ -99,10 +182,10 @@ public class Program
             options.AddPolicy(corsPolicyName, policy =>
             {
                 policy
-                    .WithOrigins("https://localhost:63494", "http://localhost:63494") // Õÿ »Ê—  «·—Ì√ﬂ  ⁄‰œﬂ
+                    .WithOrigins("https://localhost:63494", "http://localhost:63494") // √ç√ò √à√¶√ë√ä √á√°√ë√≠√É√ü√ä √ö√§√è√ü
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials(); // ›ﬁÿ ≈–«  ” Œœ„ Cookies. ≈–« JWT ›ﬁÿ „„ﬂ‰  ‘Ì·Â«
+                    .AllowCredentials(); // √ù√û√ò √Ö√ê√á √ä√ì√ä√é√è√£ Cookies. √Ö√ê√á JWT √ù√û√ò √£√£√ü√§ √ä√î√≠√°√•√á
             });
         });
 
@@ -123,6 +206,10 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         app.UseCors(corsPolicyName);
 
         app.UseAuthentication();
