@@ -50,9 +50,6 @@ const TripsListPage = () => {
                             <Box>
                                 <Typography fontWeight={600}>{trip.truckName}</Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                    Driver: {trip.driverName}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
                                     {new Date(trip.createdAt).toLocaleString()}
                                 </Typography>
                             </Box>

@@ -23,7 +23,6 @@ import PageHeader from '../components/PageHeader';
 import { useGraphNodes } from '../hooks/graph';
 import { useLocations } from '../hooks/locations';
 import { useProducts } from '../hooks/products';
-import { useDrivers } from '../hooks/drivers';
 import { useTrucks } from '../hooks/trucks';
 import { usePlanTrip } from '../hooks/trips';
 import type { TripPlanRequest } from '../types/trip';
@@ -35,7 +34,6 @@ const cargoSchema = z.object({
 
 const tripSchema = z.object({
     truckId: z.string().min(1, 'Truck is required.'),
-    driverId: z.string().min(1, 'Driver is required.'),
     startNodeId: z.string().min(1, 'Start node is required.'),
     cargoItems: z.array(cargoSchema).min(1, 'At least one cargo item is required.'),
     stopLocationIds: z.array(z.string().min(1)).min(1, 'At least one stop is required.'),
@@ -47,7 +45,6 @@ const TripFormPage = () => {
     const navigate = useNavigate();
     const planMutation = usePlanTrip();
     const { data: trucks, isLoading: trucksLoading, isError: trucksError, refetch: refetchTrucks } = useTrucks();
-    const { data: drivers, isLoading: driversLoading, isError: driversError, refetch: refetchDrivers } = useDrivers();
     const { data: products, isLoading: productsLoading, isError: productsError, refetch: refetchProducts } = useProducts();
     const { data: locations, isLoading: locationsLoading, isError: locationsError, refetch: refetchLocations } = useLocations();
     const { data: nodes, isLoading: nodesLoading, isError: nodesError, refetch: refetchNodes } = useGraphNodes();
@@ -63,7 +60,6 @@ const TripFormPage = () => {
         resolver: zodResolver(tripSchema),
         defaultValues: {
             truckId: '',
-            driverId: '',
             startNodeId: '',
             cargoItems: [{ productId: '', quantity: 1 }],
             stopLocationIds: [],
@@ -87,28 +83,16 @@ const TripFormPage = () => {
         }, 0);
     }, [cargoItems, products]);
 
-    if (trucksLoading || driversLoading || productsLoading || locationsLoading || nodesLoading) {
+    if (trucksLoading || productsLoading || locationsLoading || nodesLoading) {
         return <LoadingState message="Loading trip dependencies..." />;
     }
 
-    if (
-        trucksError ||
-        driversError ||
-        productsError ||
-        locationsError ||
-        nodesError ||
-        !trucks ||
-        !drivers ||
-        !products ||
-        !locations ||
-        !nodes
-    ) {
+    if (trucksError || productsError || locationsError || nodesError || !trucks || !products || !locations || !nodes) {
         return (
             <ErrorState
                 message="Unable to load trip dependencies."
                 onRetry={() => {
                     refetchTrucks();
-                    refetchDrivers();
                     refetchProducts();
                     refetchLocations();
                     refetchNodes();
@@ -120,7 +104,6 @@ const TripFormPage = () => {
     const onSubmit = async (values: TripFormValues) => {
         const payload: TripPlanRequest = {
             truckId: values.truckId,
-            driverId: values.driverId,
             startNodeId: values.startNodeId,
             cargoItems: values.cargoItems.map((item) => ({
                 productId: item.productId,
@@ -176,22 +159,6 @@ const TripFormPage = () => {
                                 {trucks.map((truck) => (
                                     <MenuItem key={truck.id} value={truck.id}>
                                         {truck.name} ({truck.plateNumber})
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                select
-                                label="Driver"
-                                fullWidth
-                                {...register('driverId')}
-                                error={Boolean(errors.driverId)}
-                                helperText={errors.driverId?.message}
-                            >
-                                {drivers.map((driver) => (
-                                    <MenuItem key={driver.id} value={driver.id}>
-                                        {driver.firstName} {driver.lastName}
                                     </MenuItem>
                                 ))}
                             </TextField>

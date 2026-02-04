@@ -4,7 +4,6 @@ public class Trip
 {
     public Guid Id { get; set; }
     public Guid TruckId { get; set; }
-    public Guid DriverId { get; set; }
     public TripStatus Status { get; set; } = TripStatus.Planned;
     public decimal TotalPlannedDistance { get; set; }
     public decimal? TotalPlannedCostOrTime { get; set; }
@@ -12,7 +11,6 @@ public class Trip
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public Truck Truck { get; set; } = null!;
-    public Driver Driver { get; set; } = null!;
     public ApplicationUser CreatedByUser { get; set; } = null!;
     public ICollection<TripStop> Stops { get; set; } = new List<TripStop>();
     public ICollection<TripCargoItem> CargoItems { get; set; } = new List<TripCargoItem>();

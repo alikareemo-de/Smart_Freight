@@ -29,15 +29,8 @@ public class TripsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        try
-        {
-            var response = await _tripPlanningService.PlanAndCreateTripAsync(request, userId, cancellationToken);
-            return Ok(response);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var response = await _tripPlanningService.PlanAndCreateTripAsync(request, userId, cancellationToken);
+        return Ok(response);
     }
 
     [HttpGet]
@@ -46,7 +39,6 @@ public class TripsController : ControllerBase
     {
         var trips = await _dbContext.Trips
             .Include(trip => trip.Truck)
-            .Include(trip => trip.Driver)
             .AsNoTracking()
             .OrderByDescending(trip => trip.CreatedAt)
             .Select(trip => new TripSummaryResponse
@@ -54,8 +46,6 @@ public class TripsController : ControllerBase
                 Id = trip.Id,
                 TruckId = trip.TruckId,
                 TruckName = trip.Truck.Name,
-                DriverId = trip.DriverId,
-                DriverName = $"{trip.Driver.FirstName} {trip.Driver.LastName}",
                 Status = trip.Status.ToString(),
                 TotalPlannedDistance = trip.TotalPlannedDistance,
                 CreatedAt = trip.CreatedAt
@@ -71,7 +61,6 @@ public class TripsController : ControllerBase
     {
         var trip = await _dbContext.Trips
             .Include(item => item.Truck)
-            .Include(item => item.Driver)
             .Include(item => item.Stops)
                 .ThenInclude(stop => stop.StopLocation)
             .Include(item => item.CargoItems)
@@ -89,8 +78,6 @@ public class TripsController : ControllerBase
             Id = trip.Id,
             TruckId = trip.TruckId,
             TruckName = trip.Truck.Name,
-            DriverId = trip.DriverId,
-            DriverName = $"{trip.Driver.FirstName} {trip.Driver.LastName}",
             Status = trip.Status.ToString(),
             TotalPlannedDistance = trip.TotalPlannedDistance,
             CreatedAt = trip.CreatedAt,
@@ -141,34 +128,6 @@ public class TripsController : ControllerBase
         }
 
         return Ok(steps);
-    }
-
-    [HttpGet("/trips/driver/{driverId:guid}")]
-    [Authorize(Roles = "Admin,Dispatcher,Driver")]
-    public async Task<ActionResult<IEnumerable<TripSummaryResponse>>> GetTripsByDriver(
-        Guid driverId,
-        CancellationToken cancellationToken)
-    {
-        var trips = await _dbContext.Trips
-            .Include(trip => trip.Truck)
-            .Include(trip => trip.Driver)
-            .AsNoTracking()
-            .Where(trip => trip.DriverId == driverId)
-            .OrderByDescending(trip => trip.CreatedAt)
-            .Select(trip => new TripSummaryResponse
-            {
-                Id = trip.Id,
-                TruckId = trip.TruckId,
-                TruckName = trip.Truck.Name,
-                DriverId = trip.DriverId,
-                DriverName = $"{trip.Driver.FirstName} {trip.Driver.LastName}",
-                Status = trip.Status.ToString(),
-                TotalPlannedDistance = trip.TotalPlannedDistance,
-                CreatedAt = trip.CreatedAt
-            })
-            .ToListAsync(cancellationToken);
-
-        return Ok(trips);
     }
 
     [HttpPatch("{id:guid}/status")]

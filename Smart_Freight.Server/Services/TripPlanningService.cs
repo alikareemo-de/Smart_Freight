@@ -32,12 +32,6 @@ public class TripPlanningService : ITripPlanningService
             throw new InvalidOperationException("Truck is not available.");
         }
 
-        var driver = await _dbContext.Drivers.FirstOrDefaultAsync(item => item.Id == request.DriverId, cancellationToken);
-        if (driver is null || !driver.IsActive)
-        {
-            throw new InvalidOperationException("Driver is not available.");
-        }
-
         var stopLocations = await _dbContext.StopLocations
             .Include(location => location.GraphNode)
             .Where(location => request.StopLocationIds.Contains(location.Id))
@@ -86,7 +80,6 @@ public class TripPlanningService : ITripPlanningService
         {
             Id = Guid.NewGuid(),
             TruckId = truck.Id,
-            DriverId = driver.Id,
             CreatedByUserId = createdByUserId,
             Status = TripStatus.Planned,
             CreatedAt = DateTimeOffset.UtcNow

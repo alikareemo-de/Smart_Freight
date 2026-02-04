@@ -3,7 +3,6 @@ import {
     fetchTrip,
     fetchTripRoute,
     fetchTrips,
-    fetchTripsByDriver,
     planAndCreateTrip,
     updateTripStatus,
     updateTripStopStatus,
@@ -14,13 +13,6 @@ export const useTrips = () =>
     useQuery({
         queryKey: ['trips'],
         queryFn: fetchTrips,
-    });
-
-export const useTripsByDriver = (driverId: string) =>
-    useQuery({
-        queryKey: ['trips', 'driver', driverId],
-        queryFn: () => fetchTripsByDriver(driverId),
-        enabled: Boolean(driverId),
     });
 
 export const useTrip = (id: string) =>

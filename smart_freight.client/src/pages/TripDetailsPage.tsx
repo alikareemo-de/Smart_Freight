@@ -73,10 +73,6 @@ const TripDetailsPage = () => {
                         </Typography>
                         <Typography>{data.status}</Typography>
                         <Typography fontWeight={600} mt={2}>
-                            Driver
-                        </Typography>
-                        <Typography>{data.driverName}</Typography>
-                        <Typography fontWeight={600} mt={2}>
                             Total Distance
                         </Typography>
                         <Typography>{data.totalPlannedDistance.toFixed(2)} km</Typography>

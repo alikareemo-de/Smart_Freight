@@ -13,13 +13,10 @@ import {
 import { Controller, useForm } from 'react-hook-form';
 import { enqueueSnackbar } from 'notistack';
 import { z } from 'zod';
-import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
-import { useMemo, useState } from 'react';
 import DataTable from '../components/DataTable';
 import ErrorState from '../components/ErrorState';
 import LoadingState from '../components/LoadingState';
 import PageHeader from '../components/PageHeader';
-import { GoogleMapsProvider, useGoogleMaps } from '../components/maps/GoogleMapsProvider';
 import { useCreateGraphEdge, useCreateGraphNode, useGraphEdges, useGraphNodes } from '../hooks/graph';
 
 const nodeSchema = z.object({
@@ -38,16 +35,11 @@ const edgeSchema = z.object({
 type NodeFormValues = z.infer<typeof nodeSchema>;
 type EdgeFormValues = z.infer<typeof edgeSchema>;
 
-const defaultCenter = { lat: 40.7128, lng: -74.006 };
-
-const GraphPageInner = () => {
+const GraphPage = () => {
     const { data: nodes, isLoading: nodesLoading, isError: nodesError, refetch: refetchNodes } = useGraphNodes();
     const { data: edges, isLoading: edgesLoading, isError: edgesError, refetch: refetchEdges } = useGraphEdges();
     const createNodeMutation = useCreateGraphNode();
     const createEdgeMutation = useCreateGraphEdge();
-    const { isLoaded, isApiKeyMissing } = useGoogleMaps();
-    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
     const nodeForm = useForm<NodeFormValues>({
         resolver: zodResolver(nodeSchema),
@@ -67,23 +59,6 @@ const GraphPageInner = () => {
             isBidirectional: true,
         },
     });
-
-    const nodesWithCoords = useMemo(
-        () => nodes?.filter((node) => node.latitude != null && node.longitude != null) ?? [],
-        [nodes]
-    );
-
-    const selectedEdge = edges?.find((edge) => edge.id === selectedEdgeId);
-    const selectedEdgePath = useMemo(() => {
-        if (!selectedEdge) return null;
-        const from = nodes?.find((node) => node.id === selectedEdge.fromNodeId);
-        const to = nodes?.find((node) => node.id === selectedEdge.toNodeId);
-        if (!from?.latitude || !from?.longitude || !to?.latitude || !to?.longitude) return null;
-        return [
-            { lat: from.latitude, lng: from.longitude },
-            { lat: to.latitude, lng: to.longitude },
-        ];
-    }, [selectedEdge, nodes]);
 
     if (nodesLoading || edgesLoading) {
         return <LoadingState message="Loading graph data..." />;
@@ -232,59 +207,12 @@ const GraphPageInner = () => {
                 <Grid item xs={12} md={7}>
                     <Paper variant="outlined" sx={{ p: 3 }}>
                         <Typography variant="h6" fontWeight={600} mb={2}>
-                            Map View
-                        </Typography>
-                        {isApiKeyMissing || !isLoaded ? (
-                            <Typography variant="body2" color="text.secondary" mb={2}>
-                                Google Maps is unavailable. Add VITE_GOOGLE_MAPS_API_KEY to enable map interactions.
-                            </Typography>
-                        ) : (
-                            <GoogleMap
-                                mapContainerStyle={{ width: '100%', height: '320px' }}
-                                center={
-                                    selectedNodeId
-                                        ? {
-                                              lat: nodes.find((node) => node.id === selectedNodeId)?.latitude ?? defaultCenter.lat,
-                                              lng: nodes.find((node) => node.id === selectedNodeId)?.longitude ?? defaultCenter.lng,
-                                          }
-                                        : defaultCenter
-                                }
-                                zoom={12}
-                                onClick={(event) => {
-                                    if (!event.latLng) return;
-                                    nodeForm.setValue('latitude', event.latLng.lat(), { shouldDirty: true });
-                                    nodeForm.setValue('longitude', event.latLng.lng(), { shouldDirty: true });
-                                }}
-                                options={{ streetViewControl: false, mapTypeControl: false }}
-                            >
-                                {nodesWithCoords.map((node) => (
-                                    <Marker
-                                        key={node.id}
-                                        position={{ lat: node.latitude!, lng: node.longitude! }}
-                                        onClick={() => setSelectedNodeId(node.id)}
-                                        label={node.name}
-                                    />
-                                ))}
-                                {selectedEdgePath && (
-                                    <Polyline path={selectedEdgePath} options={{ strokeColor: '#1e3a8a', strokeWeight: 4 }} />
-                                )}
-                            </GoogleMap>
-                        )}
-                        <Divider sx={{ my: 3 }} />
-                        <Typography variant="h6" fontWeight={600} mb={2}>
                             Nodes
                         </Typography>
                         <DataTable
                             rows={nodes}
                             columns={[
-                                {
-                                    header: 'Name',
-                                    render: (node) => (
-                                        <Button variant="text" onClick={() => setSelectedNodeId(node.id)}>
-                                            {node.name}
-                                        </Button>
-                                    ),
-                                },
+                                { header: 'Name', render: (node) => node.name },
                                 { header: 'Latitude', render: (node) => node.latitude ?? '—' },
                                 { header: 'Longitude', render: (node) => node.longitude ?? '—' },
                             ]}
@@ -296,14 +224,7 @@ const GraphPageInner = () => {
                         <DataTable
                             rows={edges}
                             columns={[
-                                {
-                                    header: 'From',
-                                    render: (edge) => (
-                                        <Button variant="text" onClick={() => setSelectedEdgeId(edge.id)}>
-                                            {edge.fromNodeId}
-                                        </Button>
-                                    ),
-                                },
+                                { header: 'From', render: (edge) => edge.fromNodeId },
                                 { header: 'To', render: (edge) => edge.toNodeId },
                                 { header: 'Weight', render: (edge) => edge.weight },
                                 { header: 'Bidirectional', render: (edge) => (edge.isBidirectional ? 'Yes' : 'No') },
@@ -315,11 +236,5 @@ const GraphPageInner = () => {
         </Box>
     );
 };
-
-const GraphPage = () => (
-    <GoogleMapsProvider>
-        <GraphPageInner />
-    </GoogleMapsProvider>
-);
 
 export default GraphPage;

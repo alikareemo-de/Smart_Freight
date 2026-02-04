@@ -101,9 +101,6 @@ public class SmartFreightDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(trip => trip.Truck)
                 .WithMany()
                 .HasForeignKey(trip => trip.TruckId);
-            entity.HasOne(trip => trip.Driver)
-                .WithMany()
-                .HasForeignKey(trip => trip.DriverId);
             entity.HasOne(trip => trip.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(trip => trip.CreatedByUserId);

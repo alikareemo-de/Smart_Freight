@@ -19,11 +19,6 @@ export const fetchTrips = async () => {
     return data;
 };
 
-export const fetchTripsByDriver = async (driverId: string) => {
-    const { data } = await httpClient.get<TripSummary[]>(`/trips/driver/${driverId}`);
-    return data;
-};
-
 export const fetchTrip = async (id: string) => {
     const { data } = await httpClient.get<TripDetails>(`/api/trips/${id}`);
     return data;
