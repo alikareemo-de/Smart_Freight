@@ -12,25 +12,32 @@ const baseFolder =
         ? `${env.APPDATA}/ASP.NET/https`
         : `${env.HOME}/.aspnet/https`;
 
-const certificateName = "smart_freight.client";
+const certificateName = 'smart_freight.client';
 const certFilePath = path.join(baseFolder, `${certificateName}.pem`);
 const keyFilePath = path.join(baseFolder, `${certificateName}.key`);
+const useHttps = env.VITE_USE_HTTPS !== 'false';
 
-if (!fs.existsSync(baseFolder)) {
+if (useHttps && !fs.existsSync(baseFolder)) {
     fs.mkdirSync(baseFolder, { recursive: true });
 }
 
-if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
-    if (0 !== child_process.spawnSync('dotnet', [
-        'dev-certs',
-        'https',
-        '--export-path',
-        certFilePath,
-        '--format',
-        'Pem',
-        '--no-password',
-    ], { stdio: 'inherit', }).status) {
-        throw new Error("Could not create certificate.");
+const dotnetAvailable = useHttps && child_process.spawnSync('dotnet', ['--version'], { stdio: 'ignore' }).status === 0;
+
+if (useHttps && dotnetAvailable && (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath))) {
+    if (0 !== child_process.spawnSync(
+        'dotnet',
+        [
+            'dev-certs',
+            'https',
+            '--export-path',
+            certFilePath,
+            '--format',
+            'Pem',
+            '--no-password',
+        ],
+        { stdio: 'inherit' }
+    ).status) {
+        console.warn('⚠️ Unable to create HTTPS dev certificate. Falling back to HTTP.');
     }
 }
 
@@ -53,9 +60,11 @@ export default defineConfig({
             }
         },
         port: parseInt(env.DEV_SERVER_PORT || '63494'),
-        https: {
-            key: fs.readFileSync(keyFilePath),
-            cert: fs.readFileSync(certFilePath),
-        }
+        https: useHttps && fs.existsSync(certFilePath) && fs.existsSync(keyFilePath)
+            ? {
+                  key: fs.readFileSync(keyFilePath),
+                  cert: fs.readFileSync(certFilePath),
+              }
+            : false,
     }
 })
