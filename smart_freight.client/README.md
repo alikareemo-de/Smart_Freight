@@ -2,6 +2,19 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## Google Maps setup
+
+The logistics UI uses Google Maps for location picking and route visualization.
+
+1. Create a Google Maps API key and enable:
+   - Maps JavaScript API
+   - Places API
+   - Geocoding API
+2. Set the key in your environment:
+   - `VITE_GOOGLE_MAPS_API_KEY=your_key_here`
+
+When the key is missing, map features are disabled and the UI falls back to manual coordinate entry.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
