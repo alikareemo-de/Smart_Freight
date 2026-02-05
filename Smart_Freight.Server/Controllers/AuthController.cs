@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Smart_Freight.Server.Dtos.Auth;
 using Smart_Freight.Server.Models;
@@ -51,22 +50,15 @@ public class AuthController : ControllerBase
         var role = string.IsNullOrWhiteSpace(request.Role) ? "Dispatcher" : request.Role;
         await _userManager.AddToRoleAsync(user, role);
 
-        try
-        {
-            var (token, expiresAt) = await _tokenService.CreateTokenAsync(user);
+        var (token, expiresAt) = await _tokenService.CreateTokenAsync(user);
 
-            return Ok(new AuthResponse
-            {
-                AccessToken = token,
-                ExpiresAt = expiresAt,
-                Email = user.Email ?? string.Empty,
-                Role = role
-            });
-        }
-        catch (InvalidOperationException ex)
+        return Ok(new AuthResponse
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
-        }
+            AccessToken = token,
+            ExpiresAt = expiresAt,
+            Email = user.Email ?? string.Empty,
+            Role = role
+        });
     }
 
     [HttpPost("login")]
@@ -91,21 +83,14 @@ public class AuthController : ControllerBase
 
         var roles = await _userManager.GetRolesAsync(user);
         var primaryRole = roles.FirstOrDefault() ?? string.Empty;
-        try
-        {
-            var (token, expiresAt) = await _tokenService.CreateTokenAsync(user);
+        var (token, expiresAt) = await _tokenService.CreateTokenAsync(user);
 
-            return Ok(new AuthResponse
-            {
-                AccessToken = token,
-                ExpiresAt = expiresAt,
-                Email = user.Email ?? string.Empty,
-                Role = primaryRole
-            });
-        }
-        catch (InvalidOperationException ex)
+        return Ok(new AuthResponse
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
-        }
+            AccessToken = token,
+            ExpiresAt = expiresAt,
+            Email = user.Email ?? string.Empty,
+            Role = primaryRole
+        });
     }
 }
