@@ -69,9 +69,21 @@ public class TripsController : ControllerBase
     [Authorize(Roles = "Driver")]
     public async Task<ActionResult<IEnumerable<TripSummaryResponse>>> GetMyTrips(CancellationToken cancellationToken)
     {
-        if (!TryGetDriverId(out var driverId))
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
         {
             return Unauthorized();
+        }
+
+        var driverId = await _dbContext.Drivers
+            .AsNoTracking()
+            .Where(driver => driver.UserId == userId)
+            .Select(driver => driver.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (driverId == Guid.Empty)
+        {
+            return NotFound(new { message = "Driver profile not found." });
         }
 
         var trips = await _dbContext.Trips
@@ -117,7 +129,8 @@ public class TripsController : ControllerBase
 
         if (User.IsInRole("Driver"))
         {
-            if (!TryGetDriverId(out var driverId) || trip.DriverId != driverId)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId) || trip.Driver.UserId != userId)
             {
                 return Forbid();
             }
@@ -162,14 +175,15 @@ public class TripsController : ControllerBase
     {
         if (User.IsInRole("Driver"))
         {
-            if (!TryGetDriverId(out var driverId))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
             {
                 return Unauthorized();
             }
 
             var hasAccess = await _dbContext.Trips
                 .AsNoTracking()
-                .AnyAsync(trip => trip.Id == id && trip.DriverId == driverId, cancellationToken);
+                .AnyAsync(trip => trip.Id == id && trip.Driver.UserId == userId, cancellationToken);
 
             if (!hasAccess)
             {
@@ -232,14 +246,15 @@ public class TripsController : ControllerBase
     {
         if (User.IsInRole("Driver"))
         {
-            if (!TryGetDriverId(out var driverId))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
             {
                 return Unauthorized();
             }
 
             var hasAccess = await _dbContext.Trips
                 .AsNoTracking()
-                .AnyAsync(trip => trip.Id == id && trip.DriverId == driverId, cancellationToken);
+                .AnyAsync(trip => trip.Id == id && trip.Driver.UserId == userId, cancellationToken);
 
             if (!hasAccess)
             {
@@ -267,12 +282,5 @@ public class TripsController : ControllerBase
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return NoContent();
-    }
-
-    private bool TryGetDriverId(out Guid driverId)
-    {
-        driverId = Guid.Empty;
-        var driverIdValue = User.FindFirstValue("driver_id");
-        return !string.IsNullOrWhiteSpace(driverIdValue) && Guid.TryParse(driverIdValue, out driverId);
     }
 }
